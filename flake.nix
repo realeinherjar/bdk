@@ -84,7 +84,6 @@
         wasmInputs = [
           # Additional wasm specific inputs can be set here
           pkgs.wasm-bindgen-cli
-          pkgs.clang_multi
         ];
 
         nativeBuildInputs = [
@@ -208,18 +207,18 @@
             cargoCheckExtraArgs = "-p bdk_esplora --no-default-features --features bitcoin/no-std,miniscript/no-std,bdk_chain/hashbrown";
           });
           # WASM
-          WASMBdk = craneWASMLib.cargoBuild (commonArgs // WASMArgs // {
-            cargoArtifacts = cargoArtifactsWASM;
-            cargoCheckExtraArgs = "-p bdk --no-default-features --features bitcoin/no-std,miniscript/no-std,bdk_chain/hashbrown,dev-getrandom-wasm";
-          });
-          WASMEsplora = craneWASMLib.cargoBuild (commonArgs // WASMArgs // {
-            cargoArtifacts = cargoArtifactsWASM;
-            cargoCheckExtraArgs = "-p bdk_esplora --no-default-features --features bitcoin/no-std,miniscript/no-std,bdk_chain/hashbrown,async";
-          });
+          # WASMBdk = craneWASMLib.cargoBuild (commonArgs // WASMArgs // {
+          #   cargoArtifacts = cargoArtifactsWASM;
+          #   cargoCheckExtraArgs = "-p bdk --no-default-features --features bitcoin/no-std,miniscript/no-std,bdk_chain/hashbrown,dev-getrandom-wasm";
+          # });
+          # WASMEsplora = craneWASMLib.cargoBuild (commonArgs // WASMArgs // {
+          #   cargoArtifacts = cargoArtifactsWASM;
+          #   cargoCheckExtraArgs = "-p bdk_esplora --no-default-features --features bitcoin/no-std,miniscript/no-std,bdk_chain/hashbrown,async";
+          # });
           # Audit dependencies
-          audit = craneLib.cargoAudit (commonArgs // {
-            inherit advisory-db;
-          });
+          # audit = craneLib.cargoAudit (commonArgs // {
+          #   inherit advisory-db;
+          # });
         };
 
         packages = {

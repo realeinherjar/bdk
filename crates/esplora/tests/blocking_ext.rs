@@ -1,6 +1,7 @@
 use bdk_esplora::EsploraExt;
 use electrsd::bitcoind::bitcoincore_rpc::RpcApi;
 use electrsd::bitcoind::{self, anyhow, BitcoinD};
+use electrsd::electrum_client::ElectrumApi;
 use electrsd::{Conf, ElectrsD};
 use esplora_client::{self, BlockingClient, Builder};
 use std::str::FromStr;
