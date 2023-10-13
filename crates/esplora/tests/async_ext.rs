@@ -1,6 +1,7 @@
 use bdk_esplora::EsploraAsyncExt;
 use electrsd::bitcoind::bitcoincore_rpc::RpcApi;
 use electrsd::bitcoind::{self, anyhow, BitcoinD};
+use electrsd::electrum_client::ElectrumApi;
 use electrsd::{Conf, ElectrsD};
 use esplora_client::{self, AsyncClient, Builder};
 use std::str::FromStr;
@@ -19,14 +20,21 @@ struct TestEnv {
 impl TestEnv {
     fn new() -> Result<Self, anyhow::Error> {
         let bitcoind_exe =
-            bitcoind::downloaded_exe_path().expect("bitcoind version feature must be enabled");
-        let bitcoind = BitcoinD::new(bitcoind_exe).unwrap();
+            bitcoind::exe_path().expect("Cannot find bitcoind daemon, set BITCOIND_EXEC environment variable with the path to bitcoind");
+        let mut bitcoind_conf = bitcoind::Conf::default();
+        bitcoind_conf.p2p = bitcoind::P2P::Yes;
+        let bitcoind = BitcoinD::with_conf(bitcoind_exe, &bitcoind_conf)?;
 
         let mut electrs_conf = Conf::default();
         electrs_conf.http_enabled = true;
-        let electrs_exe =
-            electrsd::downloaded_exe_path().expect("electrs version feature must be enabled");
+        let electrs_exe = electrsd::exe_path().expect("Cannot find electrs daemon, set ELECTRS_EXEC environment variable with the path to electrs");
         let electrsd = ElectrsD::with_conf(electrs_exe, &bitcoind, &electrs_conf)?;
+
+        // Alive checks
+        bitcoind.client.ping().unwrap(); // without using bitcoind, it is dropped and all the rest fails.
+        electrsd.client.ping().unwrap();
+        assert!(bitcoind.client.ping().is_ok());
+        assert!(electrsd.client.ping().is_ok());
 
         let base_url = format!("http://{}", &electrsd.esplora_url.clone().unwrap());
         let client = Builder::new(base_url.as_str()).build_async()?;
@@ -113,5 +121,25 @@ pub async fn test_update_tx_graph_without_keychain() -> anyhow::Result<()> {
     let mut expected_txids = vec![txid1, txid2];
     expected_txids.sort();
     assert_eq!(graph_update_txids, expected_txids);
+    Ok(())
+}
+#[test]
+fn simple_test() -> anyhow::Result<()> {
+    let bitcoind_exe =
+            bitcoind::exe_path().expect("Cannot find bitcoind daemon, set BITCOIND_EXEC environment variable with the path to bitcoind");
+    let mut bitcoind_conf = bitcoind::Conf::default();
+    bitcoind_conf.p2p = bitcoind::P2P::Yes;
+    let bitcoind = BitcoinD::with_conf(&bitcoind_exe, &bitcoind_conf)?;
+
+    let mut electrs_conf = Conf::default();
+    electrs_conf.http_enabled = true;
+    let electrs_exe = electrsd::exe_path().expect("Cannot find electrs daemon, set ELECTRS_EXEC environment variable with the path to electrs");
+    let electrsd = ElectrsD::with_conf(&electrs_exe, &bitcoind, &electrs_conf)?;
+
+    // Alive checks
+    let _ = bitcoind.client.ping().unwrap(); // without using bitcoind, it is dropped and all the rest fails.
+    let _ = electrsd.client.ping().unwrap();
+    assert!(bitcoind.client.ping().is_ok());
+    assert!(electrsd.client.ping().is_ok());
     Ok(())
 }

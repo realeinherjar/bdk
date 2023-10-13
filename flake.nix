@@ -278,7 +278,7 @@
             ];
 
             BITCOIND_EXEC = commonArgs.BITCOIND_EXEC;
-            ELECTRS_EXE = commonArgs.ELECTRS_EXE;
+            ELECTRS_EXEC = commonArgs.ELECTRS_EXEC;
           };
           MSRV = craneMSRVLib.devShell {
             cargoArtifacts = cargoArtifactsMSRV;
@@ -302,7 +302,7 @@
             ];
 
             BITCOIND_EXEC = commonArgs.BITCOIND_EXEC;
-            ELECTRS_EXE = commonArgs.ELECTRS_EXE;
+            ELECTRS_EXEC = commonArgs.ELECTRS_EXEC;
           };
           WASM = craneWASMLib.devShell {
             # inherit check build inputs

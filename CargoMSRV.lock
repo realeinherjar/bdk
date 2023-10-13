@@ -434,16 +434,15 @@ checksum = "a26ae43d7bcc3b814de94796a5e736d4029efb0ee900c12e2d54c993ad1a1e07"
 
 [[package]]
 name = "electrsd"
-version = "0.25.0"
-source = "git+https://github.com/realeinherjar/electrsd?branch=einherjar/optional-download#36e47139dc8be08a53896d1773f412e5dcc0eea4"
+version = "0.26.0"
+source = "git+https://github.com/realeinherjar/electrsd?branch=einherjar/optional-download#298990508d9fd9cee5288cd4abcc8c456d311c59"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7adb3fc7f0d79ea953567648f233af6e011cf1f98e761c81664105b23e49cde3"
 dependencies = [
- "bitcoin_hashes 0.12.0",
  "bitcoind",
  "electrum-client 0.15.1",
  "log",
- "minreq",
  "nix",
- "zip",
 ]
 
 [[package]]
