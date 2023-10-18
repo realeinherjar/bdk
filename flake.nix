@@ -3,12 +3,15 @@
 
   inputs = {
     # stable nixpkgs
-    nixpkgs.url = "github:NixOS/nixpkgs/release-23.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
     # pin bitcoind to a specific version
     # find instructions here:
     # <https://lazamar.co.uk/nix-versions>
     # pinned to 0.25.0
     nixpkgs-bitcoind.url = "github:nixos/nixpkgs?rev=9957cd48326fe8dbd52fdc50dd2502307f188b0d";
+    # Blockstream's esplora
+    # inspired by fedimint CI
+    nixpkgs-kitman.url = "github:jkitman/nixpkgs?rev=61ccef8bc0a010a21ccdeb10a92220a47d8149ac";
     crane = {
       url = "github:ipetkov/crane";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -27,16 +30,28 @@
     };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-bitcoind, crane, rust-overlay, flake-utils, advisory-db, ... }:
+  outputs = { self, nixpkgs, nixpkgs-bitcoind, nixpkgs-kitman, crane, rust-overlay, flake-utils, advisory-db, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         overlays = [ (import rust-overlay) ];
         lib = pkgs.lib;
+        stdenv = pkgs.stdenv;
+        isDarwin = stdenv.isDarwin;
+        libsDarwin = with pkgs.darwin.apple_sdk.frameworks; [
+          # Additional darwin specific inputs can be set here
+          Security
+          SystemConfiguration
+          CoreServices
+        ];
+
         pkgs = import nixpkgs {
           inherit system overlays;
         };
         pkgs-bitcoind = import nixpkgs-bitcoind {
           inherit system overlays;
+        };
+        pkgs-kitman = import nixpkgs-kitman {
+          inherit system;
         };
 
         # Toolchains
@@ -67,18 +82,13 @@
         buildInputs = [
           # Add additional build inputs here
           pkgs-bitcoind.bitcoind
-          pkgs.electrs
+          pkgs-kitman.esplora
           pkgs.openssl
           pkgs.openssl.dev
           pkgs.pkg-config
           pkgs.curl
           pkgs.libiconv
-        ] ++ lib.optionals pkgs.stdenv.isDarwin [
-          # Additional darwin specific inputs can be set here
-          pkgs.darwin.apple_sdk.frameworks.Security
-          pkgs.darwin.apple_sdk.frameworks.SystemConfiguration
-          pkgs.darwin.apple_sdk.frameworks.CoreServices
-        ];
+        ] ++ lib.optionals isDarwin libsDarwin;
 
         # WASM deps
         wasmInputs = [
@@ -89,7 +99,7 @@
         nativeBuildInputs = [
           # Add additional build inputs here
           pkgs.python3
-        ] ++ lib.optionals pkgs.stdenv.isDarwin [
+        ] ++ lib.optionals isDarwin [
           # Additional darwin specific native inputs can be set here
         ];
 
@@ -101,7 +111,7 @@
             filter = path: type:
               # esplora uses `.md` in the source code
               (lib.hasSuffix "\.md" path) ||
-              # bitcoin_rpc uses `.db` in the source code
+              # bitcoind_rpc uses `.db` in the source code
               (lib.hasSuffix "\.db" path) ||
               # Default filter from crane (allow .rs files)
               (craneLib.filterCargoSources path type)
@@ -118,7 +128,7 @@
           inherit nativeBuildInputs;
           # Additional environment variables can be set directly
           BITCOIND_EXEC = "${pkgs.bitcoind}/bin/bitcoind";
-          ELECTRS_EXEC = "${pkgs.electrs}/bin/electrs";
+          ELECTRS_EXEC = "${pkgs-kitman.esplora}/bin/esplora";
         };
 
         # MSRV derivation arguments
@@ -166,11 +176,11 @@
           latest = packages.default;
           latestAll = craneLib.cargoTest (commonArgs // {
             inherit cargoArtifacts;
-            cargoTestExtraArgs = "--all-features -- --test-threads=2"; # bdk_bitcond_rpc test spams bitcoind
+            cargoTestExtraArgs = "--all-features -- --test-threads=2"; # bdk_bitcoind_rpc test spams bitcoind
           });
           latestNoDefault = craneLib.cargoTest (commonArgs // {
             inherit cargoArtifacts;
-            cargoTestExtraArgs = "--no-default-features -- --test-threads=2"; # bdk_bitcond_rpc test spams bitcoind
+            cargoTestExtraArgs = "--no-default-features -- --test-threads=2"; # bdk_bitcoind_rpc test spams bitcoind
           });
           latestNoStdBdk = craneLib.cargoBuild (commonArgs // {
             inherit cargoArtifacts;
@@ -188,11 +198,11 @@
           MSRV = packages.MSRV;
           MSRVAll = craneMSRVLib.cargoTest (commonArgs // MSRVArgs // {
             cargoArtifacts = cargoArtifactsMSRV;
-            cargoTestExtraArgs = "--all-features -- --test-threads=2"; # bdk_bitcond_rpc test spams bitcoind
+            cargoTestExtraArgs = "--all-features -- --test-threads=2"; # bdk_bitcoind_rpc test spams bitcoind
           });
           MSRVNoDefault = craneMSRVLib.cargoTest (commonArgs // MSRVArgs // {
             cargoArtifacts = cargoArtifactsMSRV;
-            cargoTestExtraArgs = "--no-default-features -- --test-threads=2"; # bdk_bitcond_rpc test spams bitcoind
+            cargoTestExtraArgs = "--no-default-features -- --test-threads=2"; # bdk_bitcoind_rpc test spams bitcoind
           });
           MSRVNoStdBdk = craneMSRVLib.cargoBuild (commonArgs // MSRVArgs // {
             cargoArtifacts = cargoArtifactsMSRV;
@@ -216,9 +226,28 @@
           #   cargoCheckExtraArgs = "-p bdk_esplora --no-default-features --features bitcoin/no-std,miniscript/no-std,bdk_chain/hashbrown,async";
           # });
           # Audit dependencies
-          # audit = craneLib.cargoAudit (commonArgs // {
-          #   inherit advisory-db;
-          # });
+          audit = craneLib.cargoAudit (commonArgs // {
+            inherit advisory-db;
+          });
+
+          # Pre-commit checks
+          pre-commit-check = pre-commit-hooks.lib.${system}.run {
+            src = ./.;
+            hooks = {
+              nixpkgs-fmt.enable = true;
+              typos.enable = true;
+              commitizen.enable = true; # conventional commits
+              signedcommits = {
+                enable = true;
+                name = "signed-commits";
+                description = "Check whether the current commit message is signed";
+                stages = [ "push" ];
+                entry = "${signed-commits}/bin/signed-commits";
+                language = "system";
+                pass_filenames = false;
+              };
+            };
+          };
         };
 
         packages = {

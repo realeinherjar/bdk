@@ -93,16 +93,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1697545898,
-        "narHash": "sha256-Tt14Xkm2OBVM6vn06KI5lGAH17jwfDlvgEzTfspRcUU=",
+        "lastModified": 1697226376,
+        "narHash": "sha256-cumLLb1QOUtWieUnLGqo+ylNt3+fU8Lcv5Zl+tYbRUE=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "fac3684647cc9d6dfb2a39f3f4b7cf5fc89c96b6",
+        "rev": "898cb2064b6e98b8c5499f37e81adbdf2925f7c5",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "release-23.05",
+        "ref": "nixos-23.05",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -123,6 +123,22 @@
         "type": "github"
       }
     },
+    "nixpkgs-kitman": {
+      "locked": {
+        "lastModified": 1677533122,
+        "narHash": "sha256-nYSQfuPruk5oAF0J7Pp3/Si3tS/H1lg4Rwi7QIbgDJ8=",
+        "owner": "jkitman",
+        "repo": "nixpkgs",
+        "rev": "61ccef8bc0a010a21ccdeb10a92220a47d8149ac",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jkitman",
+        "repo": "nixpkgs",
+        "rev": "61ccef8bc0a010a21ccdeb10a92220a47d8149ac",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "advisory-db": "advisory-db",
@@ -130,6 +146,7 @@
         "flake-utils": "flake-utils_2",
         "nixpkgs": "nixpkgs",
         "nixpkgs-bitcoind": "nixpkgs-bitcoind",
+        "nixpkgs-kitman": "nixpkgs-kitman",
         "rust-overlay": "rust-overlay_2"
       }
     },

@@ -123,23 +123,3 @@ pub async fn test_update_tx_graph_without_keychain() -> anyhow::Result<()> {
     assert_eq!(graph_update_txids, expected_txids);
     Ok(())
 }
-#[test]
-fn simple_test() -> anyhow::Result<()> {
-    let bitcoind_exe =
-            bitcoind::exe_path().expect("Cannot find bitcoind daemon, set BITCOIND_EXEC environment variable with the path to bitcoind");
-    let mut bitcoind_conf = bitcoind::Conf::default();
-    bitcoind_conf.p2p = bitcoind::P2P::Yes;
-    let bitcoind = BitcoinD::with_conf(&bitcoind_exe, &bitcoind_conf)?;
-
-    let mut electrs_conf = Conf::default();
-    electrs_conf.http_enabled = true;
-    let electrs_exe = electrsd::exe_path().expect("Cannot find electrs daemon, set ELECTRS_EXEC environment variable with the path to electrs");
-    let electrsd = ElectrsD::with_conf(&electrs_exe, &bitcoind, &electrs_conf)?;
-
-    // Alive checks
-    let _ = bitcoind.client.ping().unwrap(); // without using bitcoind, it is dropped and all the rest fails.
-    let _ = electrsd.client.ping().unwrap();
-    assert!(bitcoind.client.ping().is_ok());
-    assert!(electrsd.client.ping().is_ok());
-    Ok(())
-}
