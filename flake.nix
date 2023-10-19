@@ -73,7 +73,7 @@
         craneClippyLib = (crane.mkLib pkgs).overrideToolchain rustClippyTarget;
         # MSRV specific configs
         # WASM specific configs
-        # craneUtils needs to be built using Rust latest (not MSRV)
+        # craneUtils needs to be built using Rust latest (not MSRV/WASM)
         # check https://github.com/ipetkov/crane/issues/422
         craneMSRVLib = ((crane.mkLib pkgs).overrideToolchain rustMSRVTarget).overrideScope' (final: prev: { inherit (craneLib) craneUtils; });
         craneWASMLib = ((crane.mkLib pkgs).overrideToolchain rustWASMTarget).overrideScope' (final: prev: { inherit (craneLib) craneUtils; });
@@ -91,9 +91,12 @@
         ] ++ lib.optionals isDarwin libsDarwin;
 
         # WASM deps
-        wasmInputs = [
+        WASMInputs = [
           # Additional wasm specific inputs can be set here
-          pkgs.wasm-bindgen-cli
+          pkgs.llvmPackages_14.clang-unwrapped
+          pkgs.llvmPackages_14.stdenv
+          pkgs.llvmPackages_14.libcxxClang
+          pkgs.llvmPackages_14.libcxxStdenv
         ];
 
         nativeBuildInputs = [
@@ -114,8 +117,7 @@
               # bitcoind_rpc uses `.db` in the source code
               (lib.hasSuffix "\.db" path) ||
               # Default filter from crane (allow .rs files)
-              (craneLib.filterCargoSources path type)
-            ;
+              (craneLib.filterCargoSources path type);
           };
 
           # Fixing name/version here to avoid warnings
@@ -139,8 +141,18 @@
         # WASM derivation arguments
         WASMArgs = {
           CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
-          buildInputs = buildInputs ++ wasmInputs;
+          buildInputs = buildInputs ++ WASMInputs;
           inherit nativeBuildInputs;
+          # crane tries to run the WASM file as if it were a binary
+          doCheck = false;
+          # just build bdk for now
+          cargoExtraArgs = "--locked --target wasm32-unknown-unknown -p bdk --no-default-features --features bitcoin/no-std,miniscript/no-std,bdk_chain/hashbrown,dev-getrandom-wasm";
+          # env vars
+          CC = "${stdenv.cc.nativePrefix}cc";
+          AR = "${stdenv.cc.nativePrefix}ar";
+          CC_wasm32_unknown_unknown = "${pkgs.llvmPackages_14.clang-unwrapped}/bin/clang-14";
+          CFLAGS_wasm32_unknown_unknown = "-I ${pkgs.llvmPackages_14.libclang.lib}/lib/clang/14.0.6/include/";
+          AR_wasm32_unknown_unknown = "${pkgs.llvmPackages_14.llvm}/bin/llvm-ar";
         };
 
 
@@ -167,11 +179,11 @@
           rustFmtExtraArgs = "--config format_code_in_doc_comments=true";
         });
       in
-      rec
-      {
+      rec {
         checks = {
           inherit clippy;
           inherit fmt;
+
           # Latest
           latest = packages.default;
           latestAll = craneLib.cargoTest (commonArgs // {
@@ -194,6 +206,7 @@
             inherit cargoArtifacts;
             cargoCheckExtraArgs = "-p bdk_esplora --no-default-features --features bitcoin/no-std,miniscript/no-std,bdk_chain/hashbrown";
           });
+
           # MSRV
           MSRV = packages.MSRV;
           MSRVAll = craneMSRVLib.cargoTest (commonArgs // MSRVArgs // {
@@ -216,15 +229,16 @@
             cargoArtifacts = cargoArtifactsMSRV;
             cargoCheckExtraArgs = "-p bdk_esplora --no-default-features --features bitcoin/no-std,miniscript/no-std,bdk_chain/hashbrown";
           });
+
           # WASM
-          # WASMBdk = craneWASMLib.cargoBuild (commonArgs // WASMArgs // {
-          #   cargoArtifacts = cargoArtifactsWASM;
-          #   cargoCheckExtraArgs = "-p bdk --no-default-features --features bitcoin/no-std,miniscript/no-std,bdk_chain/hashbrown,dev-getrandom-wasm";
-          # });
-          # WASMEsplora = craneWASMLib.cargoBuild (commonArgs // WASMArgs // {
-          #   cargoArtifacts = cargoArtifactsWASM;
-          #   cargoCheckExtraArgs = "-p bdk_esplora --no-default-features --features bitcoin/no-std,miniscript/no-std,bdk_chain/hashbrown,async";
-          # });
+          WASMBdk = craneWASMLib.buildPackage (commonArgs // WASMArgs // {
+            cargoArtifacts = cargoArtifactsWASM;
+          });
+          WASMEsplora = craneWASMLib.cargoBuild (commonArgs // WASMArgs // {
+            cargoArtifacts = cargoArtifactsWASM;
+            cargoExtraArgs = "--locked -p bdk_esplora --no-default-features --features bitcoin/no-std,miniscript/no-std,bdk_chain/hashbrown,async";
+          });
+
           # Audit dependencies
           audit = craneLib.cargoAudit (commonArgs // {
             inherit advisory-db;
@@ -240,7 +254,7 @@
             cargoArtifacts = cargoArtifactsMSRV;
           });
           WASM = craneWASMLib.cargoBuild (commonArgs // WASMArgs // {
-            cargoArtifacts = null;
+            cargoArtifacts = cargoArtifactsWASM;
           });
         };
         legacyPackages = {
@@ -261,6 +275,10 @@
               noStdBdk = checks.MSRVNoStdBdk;
               noStdChain = checks.MSRVNoStdChain;
               noStdEsplora = checks.MSRVNoStdEsplora;
+            };
+            WASM = {
+              bdk = checks.WASMBdk;
+              esplora = checks.WASMEsplora;
             };
           };
         };
@@ -329,7 +347,7 @@
               noStdEsplora = checks.MSRVNoStdEsplora;
             };
             # dependencies
-            packages = buildInputs ++ [
+            packages = buildInputs ++ WASMInputs ++ [
               pkgs.bashInteractive
               pkgs.git
               pkgs.ripgrep
@@ -338,7 +356,12 @@
 
             BITCOIND_EXEC = commonArgs.BITCOIND_EXEC;
             ELECTRS_EXEC = commonArgs.ELECTRS_EXEC;
-            CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
+            CARGO_BUILD_TARGET = WASMArgs.CARGO_BUILD_TARGET;
+            CC = WASMArgs.CC;
+            AR = WASMArgs.AR;
+            CC_wasm32_unknown_unknown = WASMArgs.CC_wasm32_unknown_unknown;
+            CFLAGS_wasm32_unknown_unknown = WASMArgs.CFLAGS_wasm32_unknown_unknown;
+            AR_wasm32_unknown_unknown = WASMArgs.AR_wasm32_unknown_unknown;
           };
         };
       }
