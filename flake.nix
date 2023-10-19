@@ -229,25 +229,6 @@
           audit = craneLib.cargoAudit (commonArgs // {
             inherit advisory-db;
           });
-
-          # Pre-commit checks
-          pre-commit-check = pre-commit-hooks.lib.${system}.run {
-            src = ./.;
-            hooks = {
-              nixpkgs-fmt.enable = true;
-              typos.enable = true;
-              commitizen.enable = true; # conventional commits
-              signedcommits = {
-                enable = true;
-                name = "signed-commits";
-                description = "Check whether the current commit message is signed";
-                stages = [ "push" ];
-                entry = "${signed-commits}/bin/signed-commits";
-                language = "system";
-                pass_filenames = false;
-              };
-            };
-          };
         };
 
         packages = {
@@ -266,6 +247,7 @@
           ci = {
             clippy = checks.clippy;
             fmt = checks.fmt;
+            audit = checks.audit;
             latest = {
               all = checks.latestAll;
               noDefault = checks.latestNoDefault;
@@ -314,6 +296,7 @@
             checks = {
               clippy = checks.clippy;
               fmt = checks.fmt;
+              audit = checks.audit;
               default = checks.MSRV;
               all = checks.MSRVAll;
               noDefault = checks.MSRVNoDefault;
@@ -337,6 +320,7 @@
             checks = {
               clippy = checks.clippy;
               fmt = checks.fmt;
+              audit = checks.audit;
               default = checks.MSRV;
               all = checks.MSRVAll;
               noDefault = checks.MSRVNoDefault;

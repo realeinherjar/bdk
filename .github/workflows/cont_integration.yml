@@ -36,7 +36,11 @@ jobs:
         run: nix build -L .#ci.fmt --keep-failed
       - name: Clippy
         run: nix build -L .#ci.clippy --keep-failed
-      - name: Test '--all-features' latest Rust
+      # Audit
+      - name: Audit
+        run: nix build -L .#ci.audit --keep-failed
+      # Tests: latest
+      - name: Test workspace all-features latest
         run: nix build -L .#ci.latest.all --keep-failed
       - name: Test '--no-default-features' latest Rust
         run: nix build -L .#ci.latest.noDefault --keep-failed
