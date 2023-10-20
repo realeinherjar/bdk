@@ -66,6 +66,10 @@
         rustWASMTarget = pkgs.rust-bin.stable.latest.default.override {
           targets = [ "wasm32-unknown-unknown" ];
         };
+        # LLVM code coverage
+        rustLLVMTarget = pkgs.rust-bin.stable.latest.default.override {
+          extensions = [ "llvm-tools" ];
+        };
 
         # Rust configs
         craneLib = (crane.mkLib pkgs).overrideToolchain rustTarget;
@@ -77,6 +81,8 @@
         # check https://github.com/ipetkov/crane/issues/422
         craneMSRVLib = ((crane.mkLib pkgs).overrideToolchain rustMSRVTarget).overrideScope' (final: prev: { inherit (craneLib) craneUtils; });
         craneWASMLib = ((crane.mkLib pkgs).overrideToolchain rustWASMTarget).overrideScope' (final: prev: { inherit (craneLib) craneUtils; });
+        # LLVM code coverage
+        craneLLVMLib = (crane.mkLib pkgs).overrideToolchain rustLLVMTarget;
 
         # Common inputs for all derivations
         buildInputs = [
@@ -280,6 +286,10 @@
               bdk = checks.WASMBdk;
               esplora = checks.WASMEsplora;
             };
+            codeCoverage = craneLLVMLib.cargoLlvmCov (commonArgs // {
+              inherit cargoArtifacts;
+              cargoLlvmCovExtraArgs = "--ignore-filename-regex /nix/store --all-features --workspace --lcov --output-path $out -- --test-threads=2";
+            });
           };
         };
 
@@ -362,6 +372,9 @@
             CC_wasm32_unknown_unknown = WASMArgs.CC_wasm32_unknown_unknown;
             CFLAGS_wasm32_unknown_unknown = WASMArgs.CFLAGS_wasm32_unknown_unknown;
             AR_wasm32_unknown_unknown = WASMArgs.AR_wasm32_unknown_unknown;
+          };
+          lcov = pkgs.mkShell {
+            buildInputs = [ pkgs.lcov ];
           };
         };
       }
