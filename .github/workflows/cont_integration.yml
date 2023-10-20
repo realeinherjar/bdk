@@ -28,6 +28,9 @@ jobs:
           name: bitcoindevkit
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
         continue-on-error: true # for forks outside of bitcoindevkit GH org
+      # Commit checks
+      - name: Pre-commit checks
+        run: nix build -L .#ci.pre-commit-check --keep-failed
       # Cache Builds
       - name: Build and Cache latest Rust
         run: nix build -L . --keep-failed

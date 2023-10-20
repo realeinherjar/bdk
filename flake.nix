@@ -28,9 +28,10 @@
       url = "github:rustsec/advisory-db";
       flake = false;
     };
+    pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-bitcoind, nixpkgs-kitman, crane, rust-overlay, flake-utils, advisory-db, ... }:
+  outputs = { self, nixpkgs, nixpkgs-bitcoind, nixpkgs-kitman, crane, rust-overlay, flake-utils, advisory-db, pre-commit-hooks, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         overlays = [ (import rust-overlay) ];
@@ -52,6 +53,13 @@
         };
         pkgs-kitman = import nixpkgs-kitman {
           inherit system;
+        };
+
+        # Signed Commits
+        signed-commits = pkgs.writeShellApplication {
+          name = "signed-commits";
+          runtimeInputs = [ pkgs.git ];
+          text = builtins.readFile ./ci/commits_verify_signature.sh;
         };
 
         # Toolchains
@@ -252,6 +260,25 @@
           audit = craneLib.cargoAudit (commonArgs // {
             inherit advisory-db;
           });
+
+          # Pre-commit checks
+          pre-commit-check = pre-commit-hooks.lib.${system}.run {
+            src = ./.;
+            hooks = {
+              nixpkgs-fmt.enable = true;
+              typos.enable = true;
+              commitizen.enable = true; # conventional commits
+              signedcommits = {
+                enable = true;
+                name = "signed-commits";
+                description = "Check whether the current commit message is signed";
+                stages = [ "push" ];
+                entry = "${signed-commits}/bin/signed-commits";
+                language = "system";
+                pass_filenames = false;
+              };
+            };
+          };
         };
 
         packages = {
@@ -268,6 +295,7 @@
         };
         legacyPackages = {
           ci = {
+            pre-commit-check = checks.pre-commit-check;
             clippy = checks.clippy;
             fmt = checks.fmt;
             audit = checks.audit;
@@ -317,7 +345,10 @@
               pkgs.ripgrep
               rustTarget
             ];
+            # pre-commit-checks
+            inherit (self.checks.${system}.pre-commit-check) shellHook;
 
+            # env vars
             BITCOIND_EXEC = commonArgs.BITCOIND_EXEC;
             ELECTRS_EXEC = commonArgs.ELECTRS_EXEC;
           };
@@ -343,6 +374,10 @@
               rustMSRVTarget
             ];
 
+            # pre-commit-checks
+            inherit (self.checks.${system}.pre-commit-check) shellHook;
+
+            # env vars
             BITCOIND_EXEC = commonArgs.BITCOIND_EXEC;
             ELECTRS_EXEC = commonArgs.ELECTRS_EXEC;
           };
@@ -367,6 +402,10 @@
               rustWASMTarget
             ];
 
+            # pre-commit-checks
+            inherit (self.checks.${system}.pre-commit-check) shellHook;
+
+            # env vars
             BITCOIND_EXEC = commonArgs.BITCOIND_EXEC;
             ELECTRS_EXEC = commonArgs.ELECTRS_EXEC;
             CARGO_BUILD_TARGET = WASMArgs.CARGO_BUILD_TARGET;
