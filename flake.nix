@@ -70,6 +70,8 @@
         rustLLVMTarget = pkgs.rust-bin.stable.latest.default.override {
           extensions = [ "llvm-tools" ];
         };
+        # Nighly Docs
+        rustNightlyTarget = pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default);
 
         # Rust configs
         craneLib = (crane.mkLib pkgs).overrideToolchain rustTarget;
@@ -83,6 +85,7 @@
         craneWASMLib = ((crane.mkLib pkgs).overrideToolchain rustWASMTarget).overrideScope' (final: prev: { inherit (craneLib) craneUtils; });
         # LLVM code coverage
         craneLLVMLib = (crane.mkLib pkgs).overrideToolchain rustLLVMTarget;
+        craneNightlyLib = (crane.mkLib pkgs).overrideToolchain rustNightlyTarget;
 
         # Common inputs for all derivations
         buildInputs = [
@@ -375,6 +378,12 @@
           };
           lcov = pkgs.mkShell {
             buildInputs = [ pkgs.lcov ];
+          };
+          docsNightly = craneNightlyLib.devShell {
+            packages = buildInputs ++ [ rustNightlyTarget ];
+            RUSTDOCFLAGS = "--cfg docsrs -Dwarnings";
+            BITCOIND_EXEC = commonArgs.BITCOIND_EXEC;
+            ELECTRS_EXEC = commonArgs.ELECTRS_EXEC;
           };
         };
       }

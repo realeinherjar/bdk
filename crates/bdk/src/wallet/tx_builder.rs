@@ -520,7 +520,7 @@ impl<'a, D, Cs: CoinSelectionAlgorithm, Ctx: TxBuilderContext> TxBuilder<'a, D, 
 
     /// Choose the coin selection algorithm
     ///
-    /// Overrides the [`DefaultCoinSelectionAlgorithm`](super::coin_selection::DefaultCoinSelectionAlgorithm).
+    /// Overrides the [`DefaultCoinSelectionAlgorithm`].
     ///
     /// Note that this function consumes the builder and returns it so it is usually best to put this as the first call on the builder.
     pub fn coin_selection<P: CoinSelectionAlgorithm>(
