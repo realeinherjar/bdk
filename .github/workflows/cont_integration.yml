@@ -14,8 +14,8 @@ jobs:
         with:
           fail-mode: true
 
-  continuous-integration:
-    name: Build, test, check everything
+  pre-commit-checks:
+    name: "Pre-commit checks: typos, pgp-signed and conventional commits"
     runs-on: ubuntu-latest
     steps:
       - name: checkout
@@ -23,30 +23,52 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v5
       # Cache Nix artifacts
-      - uses: cachix/cachix-action@v12
-        with:
-          name: bitcoindevkit
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-        continue-on-error: true # for forks outside of bitcoindevkit GH org
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
       # Commit checks
       - name: Pre-commit checks
         run: nix build -L .#ci.pre-commit-check --keep-failed
-      # Cache Builds
-      - name: Build and Cache latest Rust
-        run: nix build -L . --keep-failed
-      - name: Build and Cache MRSV
-        run: nix build -L .#MSRV --keep-failed
-      - name: Build and Cache WASM
-        run: nix build -L .#WASM --keep-failed
+
+  rustfmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v5
+      # Cache Nix artifacts
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
       # Rustfmt
       - name: Rustfmt
         run: nix build -L .#ci.fmt --keep-failed
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v5
+      # Cache Nix artifacts
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
       # Clippy
       - name: Clippy
         run: nix build -L .#ci.clippy --keep-failed
-      # Audit
-      - name: Audit
-        run: nix build -L .#ci.audit --keep-failed
+
+  test-latest:
+    name: Build, test, check latest Rust
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v5
+      # Cache Nix artifacts
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
+      # Cache Builds
+      - name: Build and Cache latest Rust
+        run: nix build -L . --keep-failed
       # Tests: latest
       - name: Test workspace all-features latest
         run: nix build -L .#ci.latest.all --keep-failed
@@ -58,6 +80,20 @@ jobs:
         run: nix build -L .#ci.latest.noStdChain --keep-failed
       - name: Test bdk_esplora no-std latest
         run: nix build -L .#ci.latest.noStdEsplora --keep-failed
+
+  test-MSRV:
+    name: Build, test, check MSRV
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v5
+      # Cache Nix artifacts
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
+      # Cache Builds
+      - name: Build and Cache MSRV
+        run: nix build -L .#MSRV --keep-failed
       # Tests: MSRV
       - name: Test workspace all-features MSRV
         run: nix build -L .#ci.MSRV.all --keep-failed
@@ -69,8 +105,36 @@ jobs:
         run: nix build -L .#ci.MSRV.noStdChain --keep-failed
       - name: Test bdk_esplora no-std MSRV
         run: nix build -L .#ci.MSRV.noStdEsplora --keep-failed
+
+  check-WASM:
+    name: Build and check WASM
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v5
+      # Cache Nix artifacts
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
+      # Cache Builds
+      - name: Build and Cache WASM
+        run: nix build -L .#WASM --keep-failed
       # Checks: WASM
       - name: Check bdk WASM
         run: nix build -L .#ci.WASM.bdk --keep-failed
       - name: Check bdk_esplora WASM
         run: nix build -L .#ci.WASM.esplora --keep-failed
+
+  audit:
+    name: Audit based on rustsec/advisory-db
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v5
+      # Cache Nix artifacts
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
+      # Audit
+      - name: Audit
+        run: nix build -L .#ci.audit --keep-failed
