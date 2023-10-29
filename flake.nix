@@ -172,14 +172,18 @@
           AR_wasm32_unknown_unknown = "${pkgs.llvmPackages_14.llvm}/bin/llvm-ar";
         };
 
+        buildDepsArgs = {
+          cargoBuildCommand = "cargo build --profile ci";
+        };
+
 
         # Caching: build *just* cargo dependencies for all crates, so we can reuse
         # all of that work (e.g. via cachix) when running in CI
         # all artifacts from running cargo {build,check,test} will be cached
-        cargoArtifacts = craneLib.buildDepsOnly (commonArgs);
-        cargoArtifactsMSRV = craneMSRVLib.buildDepsOnly (commonArgs // MSRVArgs);
-        cargoArtifactsWASM = craneWASMLib.buildDepsOnly (commonArgs // WASMArgs);
-        cargoArtifactsClippy = craneClippyLib.buildDepsOnly (commonArgs);
+        cargoArtifacts = craneLib.buildDepsOnly (commonArgs // buildDepsArgs);
+        cargoArtifactsMSRV = craneMSRVLib.buildDepsOnly (commonArgs // buildDepsArgs // MSRVArgs);
+        cargoArtifactsWASM = craneWASMLib.buildDepsOnly (commonArgs // buildDepsArgs // WASMArgs);
+        cargoArtifactsClippy = craneClippyLib.buildDepsOnly (commonArgs // buildDepsArgs);
 
         # Run clippy on the workspace source,
         # reusing the dependency artifacts (e.g. from build scripts or
