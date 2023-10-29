@@ -384,15 +384,7 @@
           WASM = craneWASMLib.devShell {
             # inherit check build inputs
             checks = {
-              clippy = checks.clippy;
-              fmt = checks.fmt;
-              audit = checks.audit;
-              default = checks.MSRV;
-              all = checks.MSRVAll;
-              noDefault = checks.MSRVNoDefault;
-              noStdBdk = checks.MSRVNoStdBdk;
-              noStdChain = checks.MSRVNoStdChain;
-              noStdEsplora = checks.MSRVNoStdEsplora;
+              inherit (checks) clippy fmt audit MSRV MSRVAll MSRVNoDefault MSRVNoStdBdk MSRVNoStdChain MSRVNoStdEsplora;
             };
             # dependencies
             packages = buildInputs ++ WASMInputs ++ [
