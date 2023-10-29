@@ -13,7 +13,7 @@
     # inspired by fedimint CI
     nixpkgs-kitman.url = "github:jkitman/nixpkgs?rev=61ccef8bc0a010a21ccdeb10a92220a47d8149ac";
     crane = {
-      url = "github:ipetkov/crane";
+      url = "github:ipetkov/crane?rev=b7db46f0f1751f7b1d1911f6be7daf568ad5bc65";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     rust-overlay = {
