@@ -26,7 +26,7 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@v2
       # Commit checks
       - name: Pre-commit checks
-        run: nix build -L .#ci.pre-commit-check --keep-failed
+        run: nix build -L .#ci.pre-commit-check
 
   rustfmt:
     name: rustfmt
@@ -40,7 +40,7 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@v2
       # Rustfmt
       - name: Rustfmt
-        run: nix build -L .#ci.fmt --keep-failed
+        run: nix build -L .#ci.fmt
 
   clippy:
     name: clippy
@@ -54,7 +54,7 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@v2
       # Clippy
       - name: Clippy
-        run: nix build -L .#ci.clippy --keep-failed
+        run: nix build -L .#ci.clippy
 
   test-latest:
     name: Build, test, check latest Rust
@@ -68,18 +68,18 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@v2
       # Cache Builds
       - name: Build and Cache latest Rust
-        run: nix build -L . --keep-failed
+        run: nix build -L .
       # Tests: latest
       - name: Test workspace all-features latest
-        run: nix build -L .#ci.latest.all --keep-failed
+        run: nix build -L .#ci.latest.all
       - name: Test workspace no-default-features latest
-        run: nix build -L .#ci.latest.noDefault --keep-failed
+        run: nix build -L .#ci.latest.noDefault
       - name: Test bdk no-std latest
-        run: nix build -L .#ci.latest.noStdBdk --keep-failed
+        run: nix build -L .#ci.latest.noStdBdk
       - name: Test bdk_chain no-std latest
-        run: nix build -L .#ci.latest.noStdChain --keep-failed
+        run: nix build -L .#ci.latest.noStdChain
       - name: Test bdk_esplora no-std latest
-        run: nix build -L .#ci.latest.noStdEsplora --keep-failed
+        run: nix build -L .#ci.latest.noStdEsplora
 
   test-MSRV:
     name: Build, test, check MSRV
@@ -93,18 +93,18 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@v2
       # Cache Builds
       - name: Build and Cache MSRV
-        run: nix build -L .#MSRV --keep-failed
+        run: nix build -L .#MSRV
       # Tests: MSRV
       - name: Test workspace all-features MSRV
-        run: nix build -L .#ci.MSRV.all --keep-failed
+        run: nix build -L .#ci.MSRV.all
       - name: Test workspace no-default-features MSRV
-        run: nix build -L .#ci.MSRV.noDefault --keep-failed
+        run: nix build -L .#ci.MSRV.noDefault
       - name: Test bdk no-std MSRV
-        run: nix build -L .#ci.MSRV.noStdBdk --keep-failed
+        run: nix build -L .#ci.MSRV.noStdBdk
       - name: Test bdk_chain no-std MSRV
-        run: nix build -L .#ci.MSRV.noStdChain --keep-failed
+        run: nix build -L .#ci.MSRV.noStdChain
       - name: Test bdk_esplora no-std MSRV
-        run: nix build -L .#ci.MSRV.noStdEsplora --keep-failed
+        run: nix build -L .#ci.MSRV.noStdEsplora
 
   check-WASM:
     name: Build and check WASM
@@ -118,12 +118,12 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@v2
       # Cache Builds
       - name: Build and Cache WASM
-        run: nix build -L .#WASM --keep-failed
+        run: nix build -L .#WASM
       # Checks: WASM
       - name: Check bdk WASM
-        run: nix build -L .#ci.WASM.bdk --keep-failed
+        run: nix build -L .#ci.WASM.bdk
       - name: Check bdk_esplora WASM
-        run: nix build -L .#ci.WASM.esplora --keep-failed
+        run: nix build -L .#ci.WASM.esplora
 
   audit:
     name: Audit based on rustsec/advisory-db
@@ -137,4 +137,4 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@v2
       # Audit
       - name: Audit
-        run: nix build -L .#ci.audit --keep-failed
+        run: nix build -L .#ci.audit
