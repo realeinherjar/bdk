@@ -38,7 +38,7 @@
         lib = pkgs.lib;
         stdenv = pkgs.stdenv;
         isDarwin = stdenv.isDarwin;
-        libsDarwin = with pkgs.darwin.apple_sdk.frameworks; [
+        libsDarwin = with pkgs.darwin.apple_sdk.frameworks; lib.optionals isDarwin [
           # Additional darwin specific inputs can be set here
           Security
           SystemConfiguration
@@ -105,7 +105,7 @@
           pkgs.pkg-config
           pkgs.curl
           pkgs.libiconv
-        ] ++ lib.optionals isDarwin libsDarwin;
+        ] ++ libsDarwin;
 
         # WASM deps
         WASMInputs = [
